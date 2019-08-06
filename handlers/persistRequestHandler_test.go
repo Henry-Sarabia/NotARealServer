@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gorilla/mux"
 	"github.com/willdot/NotARealServer/persistrequests"
 )
 
@@ -71,15 +70,15 @@ var makeRequest = func(t *testing.T, url, body string, handler http.Handler, rr 
 
 func TestRetreiveRequestHandler(t *testing.T) {
 
-	handler := mux.NewRouter()
-	handler.HandleFunc("/{request}", testThing.RetreiveRequestHandler())
+	//handler := mux.NewRouter()
+	handler := testThing.RetreiveRequestHandler()
 
-	t.Run("Param ok. Request Exists. Request returned. requestName removed from data", func(t *testing.T) {
-		body := ""
+	t.Run("Body ok. Has request name. Request exists. Request returned. requestName removed from data", func(t *testing.T) {
+		body := `{"requestName" : "test"}`
 
 		rr := httptest.NewRecorder()
 
-		makeRequest(t, "/test", body, handler, rr)
+		makeRequest(t, "/request", body, handler, rr)
 
 		if status := rr.Code; status != http.StatusOK {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
@@ -95,12 +94,36 @@ func TestRetreiveRequestHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("Param ok. Request file doesn't exist. Returns 400 bad request", func(t *testing.T) {
+	t.Run("Body ok. No request name in body. returns 400", func(t *testing.T) {
+		body := `{"something" : "test"}`
+
+		rr := httptest.NewRecorder()
+
+		makeRequest(t, "/request", body, handler, rr)
+
+		if status := rr.Code; status != http.StatusBadRequest {
+			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+	})
+
+	t.Run("Body valid. Request name valid. Request file doesn't exist Returns 400 bad request", func(t *testing.T) {
+		body := `{"requestName" : "notexist"}`
+
+		rr := httptest.NewRecorder()
+
+		makeRequest(t, "/request", body, handler, rr)
+
+		if status := rr.Code; status != http.StatusBadRequest {
+			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)
+		}
+	})
+
+	t.Run("Body not valid. Returns 400 bad request", func(t *testing.T) {
 		body := ""
 
 		rr := httptest.NewRecorder()
 
-		makeRequest(t, "/notexist", body, handler, rr)
+		makeRequest(t, "/request", body, handler, rr)
 
 		if status := rr.Code; status != http.StatusBadRequest {
 			t.Errorf("handler returned wrong status code: got %v want %v", status, http.StatusOK)

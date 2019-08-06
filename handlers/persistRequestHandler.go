@@ -3,9 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"github.com/willdot/NotARealServer/persistrequests"
 )
 
@@ -59,15 +59,31 @@ func (p PersistServer) SaveRequestHandler() http.HandlerFunc {
 func (p PersistServer) RetreiveRequestHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 
-		params := mux.Vars(r)
+		var requestBody map[string]interface{}
 
-		request, _ := params["request"]
+		decoder := json.NewDecoder(r.Body)
 
-		decodedFile, err := p.LoadSaver.Load(request+".json", p.FileReader)
+		err := decoder.Decode(&requestBody)
+
+		if err != nil {
+			http.Error(w, err.Error(), 400)
+			return
+		}
+
+		request, found := requestBody["requestName"]
+
+		if !found {
+			http.Error(w, "No requestName property found in body", http.StatusBadRequest)
+			return
+		}
+
+		requestName := request.(string)
+
+		decodedFile, err := p.LoadSaver.Load(requestName+".json", p.FileReader)
 
 		if err != nil {
 			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+				http.Error(w, fmt.Sprintf("Problem retreiving request '%v'", requestName), http.StatusBadRequest)
 				return
 			}
 		}
